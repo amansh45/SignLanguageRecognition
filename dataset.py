@@ -1,62 +1,60 @@
 import os
 import cv2
 import numpy as np
+import random
 
 cwd = os.getcwd()+'/dataset'
 dirs = os.listdir(cwd)
 
 label_entries = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
-def preprocess_img(imgPath):
-    img=cv2.imread(imgPath)
+def processImg(img):
+    cv2.rectangle(img, (300,300), (100,100), (0,255,0),0)
+    grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    value = (35, 35)
+    blurred = cv2.GaussianBlur(grey, value, 0)
+    _, thresh1 = cv2.threshold(blurred, 127, 255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+    blur = cv2.GaussianBlur(grey,(5,5),0)
+    ret,thresh1 = cv2.threshold(blur,70,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+    contours, hierarchy = cv2.findContours(thresh1.copy(),cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    cnt = max(contours, key = lambda x: cv2.contourArea(x))
+    x, y, w, h = cv2.boundingRect(cnt)
+    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 0)
+    hull = cv2.convexHull(cnt)
+    drawing = np.zeros(img.shape,np.uint8)
+    cv2.drawContours(drawing, [cnt], 0, (0, 255, 0), 0)
 
-    #converting from gbr to hsv color space
-    img_HSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    #skin color range for hsv color space 
-    HSV_mask = cv2.inRange(img_HSV, (0, 15, 0), (17,170,255)) 
-    HSV_mask = cv2.morphologyEx(HSV_mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8))
-    
-    #converting from gbr to YCbCr color space
-    img_YCrCb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
-    #skin color range for hsv color space 
-    YCrCb_mask = cv2.inRange(img_YCrCb, (0, 135, 85), (255,180,135)) 
-    YCrCb_mask = cv2.morphologyEx(YCrCb_mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8))
-    
-    #merge skin detection (YCbCr and hsv)
-    global_mask=cv2.bitwise_and(YCrCb_mask,HSV_mask)
-    global_mask=cv2.medianBlur(global_mask,3)
-    global_mask = cv2.morphologyEx(global_mask, cv2.MORPH_OPEN, np.ones((4,4), np.uint8))
-    
-    
-    YCrCb_result = cv2.bitwise_not(YCrCb_mask)
-    HSV_result = cv2.bitwise_not(HSV_mask)
-    global_result=cv2.bitwise_not(global_mask)
-    
-    cv2.waitKey(0)
+    #cv2.drawContours(drawing, [hull], 0,(0, 0, 255), 0)
+    max_area=0
+    hull = cv2.convexHull(cnt, returnPoints=False)
+    cv2.drawContours(thresh1, contours, -1, (0, 255, 0), 3)
     cv2.destroyAllWindows()
-    
-    if len(YCrCb_result.shape) == 2:
-        new_image = cv2.resize(YCrCb_result, (100, 100))
-        new_image = np.reshape(new_image, (new_image.shape[0],new_image.shape[1],1))
-        return new_image
-    else:
-        return YCrCb_result
+    #print('Shape of the image is: ', drawing.shape, thresh1.shape)
+    drawing = cv2.resize(drawing, (100, 100))
+    return drawing
+    #return drawing, thresh1
+
     
 def load_data():
     global label_entries
-    dataset_dir = os.getcwd()+'/dataset'
+    dataset_dir = os.getcwd()+'/train'
     train_dataset = []
     labels = []
     print()
     for x in dirs:
         label_dir = dataset_dir+'/'+x
         print('Preprocessing images for: ',x)
-        for m in os.listdir(label_dir):
+        contents = os.listdir(label_dir)
+        random.shuffle(contents)
+        sampling = contents[0:50]
+        count = 0
+        for m in sampling:
             img_path = label_dir+'/'+m
-            train_dataset.append(preprocess_img(img_path))
+            train_dataset.append(processImg(cv2.imread(img_path)))
             lab = np.zeros(len(label_entries))
             lab[label_entries.index(x)] = 1
             labels.append(lab)
+            count += 1
     return np.array(train_dataset), np.array(labels)
 
         
