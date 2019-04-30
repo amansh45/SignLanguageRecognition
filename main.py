@@ -79,14 +79,15 @@ model.compile(optimizer=tf.train.AdamOptimizer(0.001),
               loss='categorical_crossentropy',
               metrics=['accuracy'])
 
-model.fit(X_data, labels, epochs=5, batch_size=32)
+model.fit(X_data, labels, epochs=10, batch_size=32)
 
 print('Model Trained successfully....')
 
-cap_image = capture_img()
-cap_image = np.expand_dims(cap_image, axis=0)
-prediction = model.predict(cap_image)
-
-label_index = np.argmax(prediction)
-print('The character is: ', label_entries[label_index])
+while True:
+    cap_image = capture_img()
+    cap_image = np.expand_dims(cap_image, axis=0)
+    prediction = model.predict(cap_image)
+    
+    label_index = np.argmax(prediction)
+    print('The character is: ', label_entries[label_index])
 #image = capture_img()
