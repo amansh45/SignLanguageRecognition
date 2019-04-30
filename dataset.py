@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import random
 
-cwd = os.getcwd()+'/dataset'
+cwd = os.getcwd()+'/train'
 dirs = os.listdir(cwd)
 
 label_entries = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
@@ -47,14 +47,13 @@ def load_data():
         contents = os.listdir(label_dir)
         random.shuffle(contents)
         sampling = contents[0:50]
-        count = 0
         for m in sampling:
             img_path = label_dir+'/'+m
-            train_dataset.append(processImg(cv2.imread(img_path)))
+            ret_img = processImg(cv2.imread(img_path))
+            train_dataset.append(ret_img)
             lab = np.zeros(len(label_entries))
             lab[label_entries.index(x)] = 1
             labels.append(lab)
-            count += 1
     return np.array(train_dataset), np.array(labels)
 
         
