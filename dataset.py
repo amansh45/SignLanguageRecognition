@@ -8,31 +8,25 @@ dirs = os.listdir(cwd)
 
 label_entries = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
-def processImg(img):
-    cv2.rectangle(img, (300,300), (100,100), (0,255,0),0)
-    grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    value = (35, 35)
-    blurred = cv2.GaussianBlur(grey, value, 0)
-    _, thresh1 = cv2.threshold(blurred, 127, 255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-    blur = cv2.GaussianBlur(grey,(5,5),0)
-    ret,thresh1 = cv2.threshold(blur,70,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-    contours, hierarchy = cv2.findContours(thresh1.copy(),cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-    cnt = max(contours, key = lambda x: cv2.contourArea(x))
-    x, y, w, h = cv2.boundingRect(cnt)
-    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 0)
-    hull = cv2.convexHull(cnt)
-    drawing = np.zeros(img.shape,np.uint8)
-    cv2.drawContours(drawing, [cnt], 0, (0, 255, 0), 0)
-
-    #cv2.drawContours(drawing, [hull], 0,(0, 0, 255), 0)
-    max_area=0
-    hull = cv2.convexHull(cnt, returnPoints=False)
-    cv2.drawContours(thresh1, contours, -1, (0, 255, 0), 3)
-    cv2.destroyAllWindows()
-    #print('Shape of the image is: ', drawing.shape, thresh1.shape)
-    drawing = cv2.resize(drawing, (100, 100))
-    return drawing
-    #return drawing, thresh1
+    
+def processImg(frame):
+    # converting BGR to HSV
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    
+    # define range of red color in HSV
+    lower_red = np.array([30,150,50])
+    upper_red = np.array([255,255,180])
+    
+    # create a red HSV colour boundary and
+    # threshold HSV image
+    mask = cv2.inRange(hsv, lower_red, upper_red)
+    
+    # Bitwise-AND mask and original image
+    res = cv2.bitwise_and(frame,frame, mask= mask)
+    edges = cv2.Canny(frame,100,200)
+    edges = cv2.resize(edges, (120, 120))
+    edges = np.reshape(edges,(edges.shape[0], edges.shape[1], 1))
+    return edges
 
     
 def load_data():
@@ -50,7 +44,9 @@ def load_data():
         for m in sampling:
             img_path = label_dir+'/'+m
             ret_img = processImg(cv2.imread(img_path))
-            cv2.imwrite('test/'+x+m+'.png',ret_img)
+            k = cv2.waitKey(5) & 0xFF
+            spath = os.getcwd()+'/test/'+m
+            cv2.imwrite(spath, ret_img)
             train_dataset.append(ret_img)
             lab = np.zeros(len(label_entries))
             lab[label_entries.index(x)] = 1
